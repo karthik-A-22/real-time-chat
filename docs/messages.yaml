@@ -1,0 +1,117 @@
+paths:
+  /messages:
+    post:
+      summary: Send a new message
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                senderId:
+                  type: string
+                  description: The ID of the user sending the message
+                  example: "user1"
+                receiverId:
+                  type: string
+                  description: The ID of the user receiving the message (for direct messages)
+                  example: "user2"
+                groupId:
+                  type: string
+                  description: The ID of the group (for group messages, optional)
+                  example: "group1"
+                content:
+                  type: string
+                  description: The content of the message
+                  example: "Hello, how are you?"
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: The unique ID of the message
+                  senderId:
+                    type: string
+                  receiverId:
+                    type: string
+                  groupId:
+                    type: string
+                  content:
+                    type: string
+        '500':
+          description: Server error
+
+  /messages/history:
+    get:
+      summary: Get message history between users or within a group
+      tags:
+        - Messages
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+          required: true
+          description: The ID of the user whose message history is being retrieved
+          example: "user1"
+        - in: query
+          name: withUserId
+          schema:
+            type: string
+          required: false
+          description: The ID of the other user for direct messages (optional)
+          example: "user2"
+        - in: query
+          name: groupId
+          schema:
+            type: string
+          required: false
+          description: The ID of the group for group messages (optional)
+          example: "group1"
+        - in: query
+          name: page
+          schema:
+            type: integer
+          required: false
+          description: The page number for pagination (default is 1)
+          example: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+          required: false
+          description: The number of messages per page (default is 20)
+          example: 20
+      responses:
+        '200':
+          description: Message history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    senderId:
+                      type: string
+                    receiverId:
+                      type: string
+                    groupId:
+                      type: string
+                    content:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+        '500':
+          description: Server error
