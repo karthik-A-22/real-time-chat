@@ -18,6 +18,8 @@ const swaggerDefinition = {
     },
     servers: [
         {
+            url: 'https://real-time-chat-7ki1.onrender.com/api'
+        }, {
             url: 'http://localhost:5000/api',
         },
     ],
