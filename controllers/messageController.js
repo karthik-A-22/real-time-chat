@@ -28,9 +28,23 @@ exports.getMessageHistory = async (req, res) => {
     const { userId, withUserId, groupId, page = 1, pageSize = 20 } = req.query;
 
     try {
+        // Initialize the query object with an empty $or array
         const query = { $or: [] };
-        if (withUserId) query.$or.push({ senderId: userId, receiverId: withUserId });
-        if (groupId) query.$or.push({ groupId });
+
+        query.$or.push({ receiverId: req.user.id });
+        // Add conditions to the $or array if provided
+        if (withUserId) {
+            query.$or.push({ senderId: userId, receiverId: withUserId });
+        }
+        if (groupId) {
+            query.$or.push({ groupId });
+        }
+
+        // Check if the $or array is empty and modify query accordingly
+        if (!query.$or.length) {
+            // If no conditions are provided, return an empty array or handle as needed
+            return res.json([]);
+        }
 
         // Fetch messages with populated user and group details
         const messages = await Message.find(query)
@@ -56,5 +70,3 @@ exports.getMessageHistory = async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 };
-
-

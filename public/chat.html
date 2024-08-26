@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        .error {
+            color: red;
+            font-size: 0.9em;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .form-container input,
+        .form-container button,
+        .form-container select {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-container button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: #218838;
+        }
+
+        #messages {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #messages li {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="form-container">
+        <h1>Chat</h1>
+        <select id="receiverId">
+            <option value="">Select Receiver</option>
+        </select>
+        <select id="groupId">
+            <option value="">Select Group</option>
+        </select>
+        <input id="content" placeholder="Message Content" />
+        <button id="sendMessage">Send Message</button>
+        <button id="logout">Logout</button>
+        <p id="error-message" class="error"></p>
+        <ul id="messages"></ul>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const senderId = localStorage.getItem('id');
+
+        if (!token || !senderId) {
+            window.location.href = '/login.html';
+        }
+
+        const socket = io('http://localhost:5000', { query: { token } });
+
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket server');
+        });
+
+        socket.on('message', (msg) => {
+            const messagesList = document.getElementById('messages');
+            const newMessage = document.createElement('li');
+            newMessage.textContent = `From ${msg.sender}: ${msg.content}`;
+            messagesList.appendChild(newMessage);
+        });
+
+        const fetchMessageHistory = async () => {
+            const withUserId = document.getElementById('receiverId').value.trim();
+            const groupId = document.getElementById('groupId').value.trim();
+
+            console.log('Fetching message history for:', { senderId, withUserId, groupId });
+
+            let query = `userId=${senderId}&`;
+            if (withUserId) query += `withUserId=${withUserId}&`;
+            if (groupId) query += `groupId=${groupId}`;
+
+            try {
+                const response = await fetch(`/api/messages/history?${query}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const messages = await response.json();
+                const messagesList = document.getElementById('messages');
+                messagesList.innerHTML = '';
+
+                messages.length ? messages.forEach(msg => {
+                    const messageItem = document.createElement('li');
+                    messageItem.textContent = `From ${msg.sender}: ${msg.content}`;
+                    messagesList.appendChild(messageItem);
+                }) : [];
+            } catch (error) {
+                console.error('Error fetching message history:', error);
+            }
+        };
+
+        const fetchUsers = async () => {
+            try {
+                const response = await fetch('/api/auth/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await response.json();
+                const receiverSelect = document.getElementById('receiverId');
+
+                receiverSelect.innerHTML = '<option value="">Select Receiver</option>'; // Clear previous options
+                users.forEach(user => {
+                    if (user._id !== senderId) { // Exclude the logged-in user
+                        const option = document.createElement('option');
+                        option.value = user._id;
+                        option.textContent = user.username;
+                        receiverSelect.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        };
+
+        const fetchGroups = async () => {
+            try {
+                const response = await fetch('/api/groups/list', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const groups = await response.json();
+                const groupSelect = document.getElementById('groupId');
+
+                groupSelect.innerHTML = '<option value="">Select Group</option>'; // Clear previous options
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group._id;
+                    option.textContent = group.name;
+                    groupSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+            }
+        };
+
+        window.addEventListener('load', () => {
+            fetchMessageHistory();
+            fetchUsers();
+            fetchGroups();
+        });
+
+        document.getElementById('sendMessage').addEventListener('click', () => {
+            const receiverId = document.getElementById('receiverId').value.trim();
+            const groupId = document.getElementById('groupId').value.trim();
+            const content = document.getElementById('content').value.trim();
+            const errorMessage = document.getElementById('error-message');
+
+            errorMessage.textContent = '';
+
+            // Validate that a receiver is selected
+            if (!receiverId) {
+                errorMessage.textContent = 'Receiver is required.';
+                return;
+            }
+
+            // Validate that the message content is provided
+            if (!content) {
+                errorMessage.textContent = 'Message content is required.';
+                return;
+            }
+
+            // Emit the sendMessage event with correct data
+            socket.emit('sendMessage', {
+                senderId,
+                receiverId, // Use the selected receiverId from the dropdown
+                groupId: groupId || null, // Send null if no group is selected
+                content
+            });
+
+            // Clear the input fields after sending the message
+            document.getElementById('receiverId').value = '';
+            document.getElementById('groupId').value = ''; // Also clear group selection if needed
+            document.getElementById('content').value = '';
+        });
+
+        document.getElementById('logout').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('id');
+            window.location.href = '/login.html';
+        });
+    </script>
+</body>
+
+</html>

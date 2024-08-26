@@ -10,6 +10,7 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const Message = require('./models/Message');
+const path = require('path');
 
 dotenv.config();
 
@@ -25,12 +26,15 @@ connectDB();
 
 app.use(cors());
 app.use(express.json());
-app.get('/', (req, res) => {
-    res.send(`<h1>Server is running</h1>`)
-})
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
+
+// Serve HTML files
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
 
 // Set up socket.io connection
 io.on('connection', (socket) => {

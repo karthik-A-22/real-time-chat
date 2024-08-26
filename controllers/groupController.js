@@ -13,3 +13,15 @@ exports.createGroup = async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 };
+
+exports.getGroups = async (req, res) => {
+    try {
+        const groups = await Group.find({})
+            .select('name _id'); // Return only the name and _id fields
+
+        res.json(groups);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};

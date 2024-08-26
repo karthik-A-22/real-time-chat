@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
         const payload = { user: { id: user.id } };
         jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
             if (err) throw err;
-            res.json({ token });
+            res.json({ token, id: user.id, username });
         });
     } catch (err) {
         console.error(err.message);
@@ -30,10 +30,10 @@ exports.register = async (req, res) => {
 
 // User Login
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ username });
         if (!user) return res.status(400).json({ msg: 'Invalid Credentials' });
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -42,8 +42,22 @@ exports.login = async (req, res) => {
         const payload = { user: { id: user.id } };
         jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
             if (err) throw err;
-            res.json({ token });
+            res.json({ token, id: user.id, username });
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+exports.getUsers = async (req, res) => {
+    try {
+        const userId = req.user.id; // Assuming user ID is available in req.user (from auth middleware)
+
+        const users = await User.find({ _id: { $ne: userId } }) // Exclude the logged-in user
+            .select('username _id'); // Return only the username and _id fields
+
+        res.json(users);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server Error' });
