@@ -25,3 +25,28 @@ exports.getGroups = async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 };
+
+exports.sendGroupMessage = async (req, res) => {
+    const { groupId } = req.params;
+    const { senderId, content } = req.body;
+
+    try {
+        // Find the group by ID
+        const group = await Group.findById(groupId);
+
+        if (!group) {
+            return res.status(404).json({ msg: 'Group not found' });
+        }
+
+        // Add message to the group's messages array
+        group.messages.push({ senderId, content });
+        await group.save();
+
+        // Return the sent message object
+        const sentMessage = group.messages[group.messages.length - 1];
+        res.json(sentMessage);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};

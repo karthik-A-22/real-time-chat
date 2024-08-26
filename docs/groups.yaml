@@ -42,3 +42,53 @@ paths:
                     description: List of user IDs in the group
         '500':
           description: Server error
+
+  /groups/{groupId}/messages:
+    post:
+      summary: Send a message to a group
+      tags:
+        - Group
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the group to send the message to
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                senderId:
+                  type: string
+                  description: The ID of the user sending the message
+                  example: "gr66cc3d51c8da96d9f1e8de98oup2"
+                content:
+                  type: string
+                  description: The content of the message
+                  example: "Hello everyone!"
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  senderId:
+                    type: string
+                    description: The ID of the user who sent the message
+                  content:
+                    type: string
+                    description: The content of the message
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: The time when the message was sent
+        '404':
+          description: Group not found
+        '500':
+          description: Server error
