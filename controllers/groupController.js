@@ -28,8 +28,8 @@ exports.getGroups = async (req, res) => {
 
 exports.sendGroupMessage = async (req, res) => {
     const { groupId } = req.params;
-    const { senderId, content } = req.body;
-
+    const { content } = req.body;
+    const senderId = req.user.id;
     try {
         // Find the group by ID
         const group = await Group.findById(groupId);
