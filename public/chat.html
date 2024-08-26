@@ -181,7 +181,12 @@
                     messages.forEach(msg => {
                         const messageItem = document.createElement('li');
                         messageItem.className = msg.senderId === senderId ? 'sent-message' : 'received-message';
-                        messageItem.textContent = `From ${msg.sender}: ${msg.content}`;
+                        if (msg.senderId === senderId) {
+                            messageItem.textContent = `To ${msg.receiver}: ${msg.content}`;
+                        }
+                        else {
+                            messageItem.textContent = `From ${msg.sender}: ${msg.content}`;
+                        }
                         messagesList.appendChild(messageItem);
                     });
                 }
