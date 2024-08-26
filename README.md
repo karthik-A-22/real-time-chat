@@ -7,12 +7,6 @@ This is a real-time chat application that supports user authentication, instant 
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [API Endpoints](#api-endpoints)
-   - [User Authentication](#user-authentication)
-   - [Messaging](#messaging)
-   - [Group Chat](#group-chat)
-3. [WebSocket Events](#websocket-events)
-4. [Setup and Deployment](#setup-and-deployment)
 
 ## Getting Started
 
@@ -35,5 +29,3 @@ To get started with the application:
     ```bash
     npm start
     ```
-
-## API Endpoints  
