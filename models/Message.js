@@ -7,5 +7,7 @@ const MessageSchema = new mongoose.Schema({
     content: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
 });
-
+// Indexes for better performance
+MessageSchema.index({ senderId: 1, receiverId: 1 });
+MessageSchema.index({ groupId: 1 });
 module.exports = mongoose.model('Message', MessageSchema);
