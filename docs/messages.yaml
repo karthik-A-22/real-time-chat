@@ -14,15 +14,15 @@ paths:
                 senderId:
                   type: string
                   description: The ID of the user sending the message
-                  example: "user1"
+                  example: "66cc2cfc03f60ffd304f1661"
                 receiverId:
                   type: string
                   description: The ID of the user receiving the message (for direct messages)
-                  example: "user2"
+                  example: "66cc3d51c8da96d9f1e8de99"
                 groupId:
                   type: string
                   description: The ID of the group (for group messages, optional)
-                  example: "group1"
+                  example: "gr66cc3d51c8da96d9f1e8de98oup1"
                 content:
                   type: string
                   description: The content of the message
