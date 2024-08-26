@@ -3,17 +3,21 @@ const Message = require('../models/Message');
 // Send Message
 exports.sendMessage = async (req, res) => {
     const { senderId, receiverId, groupId, content } = req.body;
+
     // Validate non-empty fields
     if (!senderId) {
         return res.status(400).json({ msg: 'Sender ID is required.' });
     }
-    if (!receiverId) {
-        return res.status(400).json({ msg: 'Receiver ID is required.' });
+    if (!receiverId && !groupId) {
+        return res.status(400).json({ msg: 'Receiver ID or Group ID is required.' });
     }
     if (!content || content.trim() === '') {
         return res.status(400).json({ msg: 'Message content is required.' });
     }
+
     try {
+        // Optional: Check if senderId and receiverId are valid users, and groupId is a valid group
+
         const message = new Message({ senderId, receiverId, groupId, content });
         await message.save();
         res.json(message);
@@ -22,10 +26,16 @@ exports.sendMessage = async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 };
-
-// Get Message History
 exports.getMessageHistory = async (req, res) => {
     const { userId, withUserId, groupId, page = 1, pageSize = 20 } = req.query;
+
+    // Validate required fields
+    if (!userId) {
+        return res.status(400).json({ msg: 'User ID is required.' });
+    }
+    if (!withUserId && !groupId) {
+        return res.status(400).json({ msg: 'withUserId or groupId is required.' });
+    }
 
     try {
         // Initialize the query object
@@ -83,4 +93,3 @@ exports.getMessageHistory = async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 };
-
