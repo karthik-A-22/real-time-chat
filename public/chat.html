@@ -45,13 +45,65 @@
         #messages {
             list-style-type: none;
             padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            /* Space between messages */
         }
 
         #messages li {
-            margin-bottom: 10px;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            max-width: 80%;
+            /* Ensure messages don’t stretch too wide */
+            word-break: break-word;
+            /* Break long words */
+        }
+
+        .sent-message {
+            background-color: #d4edda;
+            /* Light green background for sent messages */
+            align-self: flex-end;
+            /* Align sent messages to the right */
+            text-align: right;
+            /* Align text to the right */
+        }
+
+        .received-message {
+            background-color: #f8d7da;
+            /* Light red background for received messages */
+            align-self: flex-start;
+            /* Align received messages to the left */
+            text-align: left;
+            /* Align text to the left */
+        }
+
+        #pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        #pagination button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #pagination span {
+            margin: 0 10px;
         }
     </style>
 </head>
@@ -70,6 +122,11 @@
         <button id="logout">Logout</button>
         <p id="error-message" class="error"></p>
         <ul id="messages"></ul>
+        <div id="pagination">
+            <button id="prevPage" disabled>Previous</button>
+            <span id="pageInfo"></span>
+            <button id="nextPage" disabled>Next</button>
+        </div>
     </div>
 
     <script>
@@ -89,37 +146,72 @@
         socket.on('message', (msg) => {
             const messagesList = document.getElementById('messages');
             const newMessage = document.createElement('li');
-            newMessage.textContent = `From ${msg.sender}: ${msg.content}`;
+
+            // Determine message type and assign the correct class
+            if (msg.senderId === senderId) {
+                newMessage.className = 'sent-message';
+            } else {
+                newMessage.className = 'received-message';
+            }
+
+            newMessage.textContent = `${msg.content}`;
             messagesList.appendChild(newMessage);
         });
+
+        let currentPage = 1;
+        const messagesPerPage = 5;
 
         const fetchMessageHistory = async () => {
             const withUserId = document.getElementById('receiverId').value.trim();
             const groupId = document.getElementById('groupId').value.trim();
 
-            console.log('Fetching message history for:', { senderId, withUserId, groupId });
-
-            let query = `userId=${senderId}&`;
-            if (withUserId) query += `withUserId=${withUserId}&`;
-            if (groupId) query += `groupId=${groupId}`;
+            let query = `userId=${senderId}&page=${currentPage}&pageSize=${messagesPerPage}`;
+            if (withUserId) query += `&withUserId=${withUserId}`;
+            if (groupId) query += `&groupId=${groupId}`;
 
             try {
                 const response = await fetch(`/api/messages/history?${query}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const messages = await response.json();
+                const { messages, currentPage, totalPages } = await response.json();
                 const messagesList = document.getElementById('messages');
                 messagesList.innerHTML = '';
 
-                messages.length ? messages.forEach(msg => {
-                    const messageItem = document.createElement('li');
-                    messageItem.textContent = `From ${msg.sender}: ${msg.content}`;
-                    messagesList.appendChild(messageItem);
-                }) : [];
+                if (messages.length) {
+                    messages.forEach(msg => {
+                        const messageItem = document.createElement('li');
+                        messageItem.className = msg.senderId === senderId ? 'sent-message' : 'received-message';
+                        messageItem.textContent = `From ${msg.sender}: ${msg.content}`;
+                        messagesList.appendChild(messageItem);
+                    });
+                }
+
+                updatePaginationButtons(currentPage, totalPages);
             } catch (error) {
                 console.error('Error fetching message history:', error);
             }
         };
+
+        const updatePaginationButtons = (currentPage, totalPages) => {
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+        };
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchMessageHistory();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            currentPage++;
+            fetchMessageHistory();
+        });
+
+        document.getElementById('receiverId').addEventListener('change', fetchMessageHistory);
+        document.getElementById('groupId').addEventListener('change', fetchMessageHistory);
 
         const fetchUsers = async () => {
             try {
@@ -168,7 +260,6 @@
             fetchUsers();
             fetchGroups();
         });
-
         document.getElementById('sendMessage').addEventListener('click', () => {
             const receiverId = document.getElementById('receiverId').value.trim();
             const groupId = document.getElementById('groupId').value.trim();

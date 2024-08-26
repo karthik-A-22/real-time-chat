@@ -28,22 +28,23 @@ exports.getMessageHistory = async (req, res) => {
     const { userId, withUserId, groupId, page = 1, pageSize = 20 } = req.query;
 
     try {
-        // Initialize the query object with an empty $or array
-        const query = { $or: [] };
+        // Initialize the query object
+        const query = {};
 
-        query.$or.push({ receiverId: req.user.id });
-        // Add conditions to the $or array if provided
+        // Filter messages based on sender and receiver IDs or group ID
         if (withUserId) {
-            query.$or.push({ senderId: userId, receiverId: withUserId });
-        }
-        if (groupId) {
-            query.$or.push({ groupId });
-        }
-
-        // Check if the $or array is empty and modify query accordingly
-        if (!query.$or.length) {
-            // If no conditions are provided, return an empty array or handle as needed
-            return res.json([]);
+            query.$or = [
+                { senderId: userId, receiverId: withUserId },
+                { senderId: withUserId, receiverId: userId }
+            ];
+        } else if (groupId) {
+            query.groupId = groupId;
+        } else {
+            // If no filters are provided, get messages related to the user
+            query.$or = [
+                { senderId: userId },
+                { receiverId: userId }
+            ];
         }
 
         // Fetch messages with populated user and group details
@@ -51,22 +52,35 @@ exports.getMessageHistory = async (req, res) => {
             .populate('senderId', 'username')  // Populate senderId with username
             .populate('receiverId', 'username')  // Populate receiverId with username
             .populate('groupId', 'name')  // Populate groupId with group details
-            .sort({ timestamp: -1 })
-            .skip((page - 1) * pageSize)
-            .limit(parseInt(pageSize));
+            .sort({ timestamp: -1 })  // Sort messages by timestamp in descending order
+            .skip((page - 1) * pageSize)  // Apply pagination
+            .limit(parseInt(pageSize));  // Limit the number of messages returned
+
+        const totalMessages = await Message.countDocuments(query);  // Count total number of messages
+        const totalPages = Math.ceil(totalMessages / pageSize);  // Calculate total number of pages
 
         // Format the messages to include sender, receiver, and group info
         const formattedMessages = messages.map(msg => ({
+            senderId: msg.senderId._id,
             sender: msg.senderId.username,
+            receiverId: msg.receiverId ? msg.receiverId._id : null,
             receiver: msg.receiverId ? msg.receiverId.username : 'System',  // Handle case where receiverId might be null
             group: msg.groupId ? msg.groupId.name : 'No Group', // Handle case where groupId might be null
             content: msg.content,
             timestamp: msg.timestamp
         }));
 
-        res.json(formattedMessages);
+        // Send the response with messages and pagination details
+        res.json({
+            messages: formattedMessages,
+            currentPage: parseInt(page),
+            totalPages,
+            pageSize: parseInt(pageSize),
+            totalMessages
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server Error' });
     }
 };
+
